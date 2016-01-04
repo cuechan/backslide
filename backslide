@@ -1,0 +1,93 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+#  MA 02110-1301, USA.
+#  
+
+
+
+###########################
+#####     SETTNGS     #####
+###########################
+
+# change the variables below 
+# set here the path to your wallpapers
+# and the seconds between every wallpaper
+# 
+# $ENV{'HOME'} represents your "/home/<USER>/" directory
+#
+# you also can call the script with following arguments. 
+# This overwrites the settings in the script
+# 
+# $ backslide <image_directory> <seconds>;
+
+my $directory = "$ENV{'HOME'}/Pictures/wallpaper/"; # path to your wallpaper folder
+my $sleep = 60; # seconds to wait for changing your wallpaper again
+
+
+
+my @files;
+my @pictures;
+my $backnum;
+my $backdrop;
+my $last;
+
+if($ARGV[0]) {
+    $directory = $ARGV[0];
+}
+if($ARGV[1]) {
+    $sleep = $ARGV[1];
+}
+
+print($directory, "\n", $sleep, "\n");
+
+while(1) {    
+    sleep($sleep); #and wait for changing the backdrop again in x secs.
+
+    undef(@files);
+    undef(@pictures);
+
+    opendir (DIR, $directory) or die $!;
+    @files = readdir(DIR);
+    closedir(DIR); 
+
+    foreach(@files) { # select the pictures
+        if($_ =~ m/.\.(?:jpg|gif|png|jpeg)$/i) {
+            push(@pictures, $_);
+        }
+    }
+    
+    if(@pictures <= 1) { # dont do anything when theres only only one picture
+        sleep($sleep);
+        redo;
+    }
+    
+    $backnum = int(rand(scalar(@pictures))); #select a random picture
+    
+    unless(!$last) { 
+        if($backnum == $last) { #if the same picture was shown last time, select a new one.
+            next; #uncomment this if you dont want to to see the same picture in a row.
+        }
+    }
+
+
+    $backdrop = $directory.$pictures[$backnum];
+    system("gsettings set org.gnome.desktop.background picture-uri file://$backdrop");
+
+    $last = $backnum; #finally memorize the last backdrop
+} 
