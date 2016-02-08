@@ -2,6 +2,10 @@
 
 use strict;
 use warnings;
+use Data::Dumper;
+use Carp;
+
+$| = 1;
 
 
 ###########################
@@ -19,13 +23,14 @@ use warnings;
 # 
 # $ backslide <image_directory> <seconds>;
 
-my $directory = "$ENV{'HOME'}/Pictures/wallpaper/"; # path to your wallpaper folder
-my $sleep = 60; # seconds to wait for changing your wallpaper again
+my $directory = "$ENV{'HOME'}/Pictures/.wallpaper/"; # path to your wallpaper folder
+my $sleep = 30; # seconds to wait for changing your wallpaper again
 
+$directory =~ s/\/$//;
 
 
 my @files;
-my @pictures;
+my $picture;
 my $backnum;
 my $backdrop;
 my $last;
@@ -37,40 +42,34 @@ if($ARGV[1]) {
     $sleep = $ARGV[1];
 }
 
-print($directory, "\n", $sleep, "\n");
-
-while(1) {    
-    sleep($sleep); #and wait for changing the backdrop again in x secs.
-
+while(1) {
+    sleep(int($sleep/2) + int(rand($sleep))); # wait  <sec> +- 50%
+    
     undef(@files);
-    undef(@pictures);
 
     opendir (DIR, $directory) or die $!;
     @files = readdir(DIR);
-    closedir(DIR); 
-
-    foreach(@files) { # select the pictures
-        if($_ =~ m/.\.(?:jpg|gif|png|jpeg)$/i) {
-            push(@pictures, $_);
-        }
-    }
+    closedir(DIR);
     
-    if(@pictures <= 1) { # dont do anything when theres only only one picture
+    @files = grep(m/.\.(jpg|gif|png|jpeg)$/i, @files);
+    @files = grep(!-d $directory.'/'.$_, @files);
+    
+    if(@files <= 1) { # dont do anything when there is only one picture
         sleep($sleep);
         redo;
     }
     
-    $backnum = int(rand(scalar(@pictures))); #select a random picture
     
-    unless(!$last) { 
-        if($backnum == $last) { #if the same picture was shown last time, select a new one.
-            next; #uncomment this if you dont want to to see the same picture in a row.
+    if(!$last) {
+        $picture = $files[int(rand(scalar(@files)))];
+    } else {
+        while($last eq $picture) {
+             $picture = $files[rand(scalar(@files))];
         }
     }
-
-
-    $backdrop = $directory.$pictures[$backnum];
-    system("gsettings set org.gnome.desktop.background picture-uri file://$backdrop");
-
-    $last = $backnum; #finally memorize the last backdrop
+    
+    $last = $picture; #finally memorize the last backdrop
+    
+    $backdrop = $directory.'/'.$picture;
+    system("gsettings set org.gnome.desktop.background picture-uri 'file://$backdrop'"); # set wallpaper
 } 
